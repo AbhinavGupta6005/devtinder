@@ -4,20 +4,24 @@ const app = express();
 const dns = require("dns");
 const User = require("./models/user.js");
 
-dns.setServers(["1.1.1.1", "8.8.8.8"])
+dns.setServers(["1.1.1.1", "8.8.8.8"]);
 
-app.post("/signup", async (req,res) => {
-  const user = new User({
-    firstName: "Abhinav",
-    lastName: "Gupta",
-    emailId: "abhinav@gupta.com",
-    password: "abhi@123"
-  })
+app.use(express.json());
 
-  await user.save();
-  res.send("User added succesfully!!")
- 
-})
+app.post("/signup", async (req, res) => {
+  // console.log(req.body);
+
+  const user = new User(req.body);
+
+  try {
+    await user.save();
+    res.send("User added succesfully!!");
+  } catch (error) {
+    res.status(400).send("Error saving the user: " + err.message)
+  }
+});
+
+
 
 connectDB()
   .then(() => {
@@ -27,5 +31,5 @@ connectDB()
     });
   })
   .catch((err) => {
-    console.error("Database cannot be connected!!",  err);
+    console.error("Database cannot be connected!!", err);
   });
