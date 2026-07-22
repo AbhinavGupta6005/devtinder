@@ -1,14 +1,18 @@
 const express = require("express");
 const connectDB = require("./config/database.js");
-const app = express();
 const dns = require("dns");
 const User = require("./models/user.js");
 const validatesignUpData = require("./utils/validation.js");
 const bcrypt = require("bcrypt");
+const cookieParser = require("cookie-parser");
+const jwt = require("jsonwebtoken");
+const {userAuth} = require("./middlewares/auth.js");
 
+const app = express();
 dns.setServers(["1.1.1.1", "8.8.8.8"]);
 
 app.use(express.json());
+app.use(cookieParser());
 
 app.post("/signup", async (req, res) => {
   // console.log(req.body);
@@ -16,17 +20,16 @@ app.post("/signup", async (req, res) => {
   try {
     validatesignUpData(req);
 
-    const {firstName, lastName, emailId, password} = req.body;
+    const { firstName, lastName, emailId, password } = req.body;
 
     // Encrypt the password
-    const passwordHash = await bcrypt.hash(password, 10)
-    
+    const passwordHash = await bcrypt.hash(password, 10);
 
     const user = new User({
       firstName,
       lastName,
-      emailId, 
-      password: passwordHash
+      emailId,
+      password: passwordHash,
     });
 
     await user.save();
@@ -36,26 +39,59 @@ app.post("/signup", async (req, res) => {
   }
 });
 
-app.post("/login", async(req, res)=> {
+app.post("/login", async (req, res) => {
   try {
-    const {emailId, password} = req.body;
+    const { emailId, password } = req.body;
 
-    const user = await User.findOne({emailId: emailId});
-    if(!user){
-      throw new Error("Invalid Credentials")
+    const user = await User.findOne({ emailId: emailId });
+    if (!user) {
+      throw new Error("Invalid Credentials");
     }
 
-    const isPasswordValid = await bcrypt.compare(password, user.password);
+    const isPasswordValid = await user.validatePassword(password);
 
-    if(isPasswordValid){
-      res.send("Login Successful!!")
-    }
-    else{
-      throw new Error("Invalid Credentials")
+    if (isPasswordValid) {
+      // create a JWT Token
+
+      const token = await user.getJWT();
+
+      // const token = await jwt.sign({ _id: user._id }, "devTinder$find", {expiresIn: "7 d"});
+
+      // And the token to cookie and send the responce back to the user
+      res.cookie("token", token, {
+        expires: new Date(Date.now() * 8 *3600000),
+      });
+
+      res.send("Login Successful!!");
+    } else {
+      throw new Error("Invalid Credentials");
     }
   } catch (error) {
-    res.status(400).send("Error: "+ error.message)
+    res.status(400).send("Error: " + error.message);
   }
+});
+
+app.get("/profile", userAuth, async (req, res) => {
+  try {
+    // const { _id } = decodedMessage; 
+
+    const user = req.user; 
+
+    res.send(user);
+
+    // res.send("reading Cookies");
+  } catch (error) {
+    res.status(400).send("Error: " + error.message);
+  }
+});
+
+app.post("/sendConnectionRequest",userAuth, async(req,res)=>{
+
+  const user = req.user;
+
+  console.log("Sending the Connection...");
+
+  res.send(user.firstName + " sent the connection request!");
 })
 
 // Get user by email
