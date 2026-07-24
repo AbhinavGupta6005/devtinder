@@ -24,7 +24,7 @@ const userAuth = async(req, res, next) => {
         //Find the user
         next();
     } catch (error) {
-        res.status(400).send("ERROR: " + error.message);
+        res.status(400).send("Error from Auth Middleware: " + error.message);
     }
 };
 
