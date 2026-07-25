@@ -39,15 +39,15 @@ requestRouter.post("/request/send/:status/:toUserId", userAuth, async(req,res)=>
       fromUserId,
       toUserId,
       status
-    });
-
+    }); 
+    
     const data = await connectionRequest.save();
-    console.log(data)
-
+    
     res.json({
-      message: req.user.firstName + " is " + status+ " in "+ toUser.firstName,
-      data,
-    });
+        message: req.user.firstName + " is " + status+ " in "+ toUser.firstName,
+        data,
+      });
+      
   } catch (error) {
     res.status(400).send("Error of Connection: " + error.message);
   }
